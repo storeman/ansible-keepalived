@@ -11,6 +11,7 @@ None
 #### Variables
 
 * `keepalived_ip_nonlocal_bind` [default: `1`]: Allow to bind to IP addresses that are nonlocal, meaning that they're not assigned to a device on the local system
+* `keepalived_ip_forward` [default: `1`]: Allow ip forwarding
 
 * `keepalived_global_defs_notification_email` [default: `['root@localhost.localdomain']`]: Email addresses to send alerts to
 * `keepalived_global_defs_notification_email_from` [default: `'root@localhost.localdomain'`]: From address that will be in header
@@ -36,6 +37,26 @@ None
 * `keepalived_vrrp_instances.key.authentication.auth_pass`: Password string (up to 8 characters)
 * `keepalived_vrrp_instances.key.virtual_ipaddresses`: VRRP IP address block
 * `keepalived_vrrp_instances.key.track_scripts`: Scripts state we monitor
+* `keepalived_vrrp_instances.key.notify_backup`: Script to invoke when in backup state
+* `keepalived_vrrp_instances.key.notify_master`: Script to invoke when in master state
+* `keepalived_vrrp_instances.key.notify_fault`: Script to invoke when in fault state
+
+* `keepalived_virtual_servers`: Dictionary with virtual servers
+* `keepalived_virtual_servers.key`: The name of the virtual server, used for docs and grouping
+* `keepalived_virtual_servers.key.address`: The virtual IP
+* `keepalived_virtual_servers.key.port`: The port to listen on
+* `keepalived_virtual_servers.key.delay_loop`: How frequently check the state of the real servers
+* `keepalived_virtual_servers.key.lb_algo`: What algorithm to use for load balancing (rr = round robin)
+* `keepalived_virtual_servers.key.lb_kind`: Kind of load balancing (DR = direct route, NAT = Network Address Translation)
+* `keepalived_virtual_servers.key.protocol`: What protocol to use
+* `keepalived_virtual_servers.key.real_servers`: Dictonary with real servers
+* `keepalived_virtual_servers.key.real_servers.key`: Name of the real server
+* `keepalived_virtual_servers.key.real_servers.key.address`: IP Address of the real server
+* `keepalived_virtual_servers.key.real_servers.key.port`: Port Address of the real server
+* `keepalived_virtual_servers.key.real_servers.key.persistence_timeout`: How many seconds the make the connection persist to the same real server
+* `keepalived_virtual_servers.key.real_servers.key.checks`: Dictionary with checks to perform for the real server
+* `keepalived_virtual_servers.key.real_servers.key.checks.key`: Type of check
+* `keepalived_virtual_servers.key.real_servers.key.checks.key[0]`: String with check parameters
 
 ## Dependencies
 
@@ -58,6 +79,8 @@ keepalived_vrrp_scripts:
     script: 'killall -0 haproxy'
     weight: 2
     interval: 1
+	[rise: 2]
+	[fall: 2]
 
 keepalived_vrrp_instances:
   VI_1:
@@ -65,6 +88,7 @@ keepalived_vrrp_instances:
     state: MASTER
     priority: 101
     virtual_router_id: 51
+	advert_int: 1            # Optional
 
     authentication:
       auth_type: PASS
@@ -75,6 +99,59 @@ keepalived_vrrp_instances:
 
     track_scripts:
       - chk_haproxy
+    
+	# see http://gcharriere.com/blog/?p=339
+    notify_backup: /etc/keepalived/bypass_ipvs.sh add 10.0.0.10    # Optional
+    notify_fault: /etc/keepalived/bypass_ipvs.sh add 10.0.0.10     # Optional
+    notify_master: /etc/keepalived/bypass_ipvs.sh dell 10.0.0.10   # Optional
+
+keepalived_virtual_servers:
+  http:
+    address: 10.0.0.10
+    port: 80
+    delay_loop: 10
+    lb_algo: rr
+    lb_kind: DR
+    protocol: TCP
+    persistence_timeout: 5          # Optional
+	
+    real_servers: 
+      lb1:
+        address: 10.0.0.20
+        port: 80
+        checks:
+          TCP_CHECK: 
+            - 'connect_timeout 3'
+      lb2:
+        address: 10.0.0.20
+        port: 80
+        checks:
+          TCP_CHECK: 
+            - 'connect_timeout 3'
+  https:
+    address: 10.0.0.10
+    port: 443
+    delay_loop: 10
+    lb_algo: rr
+    lb_kind: DR
+    protocol: TCP
+    persistence_timeout: 5          # Optional
+	
+    real_servers: 
+      lb1:
+        address: 10.0.0.20
+        port: 443
+        checks:
+          TCP_CHECK: 
+            - 'connect_timeout 3'     # See keepalived docs
+      lb2:
+        address: 10.0.0.20
+        port: 443
+        checks:
+          TCP_CHECK: 
+            - 'connect_timeout 3'
+            - 'connect_port 443'
+  
 ```
 
 #### License

@@ -1,6 +1,7 @@
 # defaults file for keepalived
 ---
 keepalived_ip_nonlocal_bind: 1
+keepalived_ip_forward: 1
 
 keepalived_global_defs_notification_email:
   - 'root@localhost.localdomain'
@@ -11,3 +12,4 @@ keepalived_global_defs_smtp_connect_timeout: 30
 keepalived_vrrp_scripts: {}
 
 keepalived_vrrp_instances: {}
+keepalived_virtual_servers: {}

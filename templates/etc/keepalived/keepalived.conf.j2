@@ -20,6 +20,12 @@ vrrp_script {{ key }} {
   {% if value.interval is defined and value.interval | int %}
   interval {{ value.interval }}
   {% endif %}
+  {% if value.rise is defined and value.rise | int %}
+  rise {{ value.rise }}
+  {% endif %}
+  {% if value.fall is defined and value.fall | int %}
+  fall {{ value.fall }}
+  {% endif %}
 }
 {% endfor %}
 
@@ -53,5 +59,46 @@ vrrp_instance {{ key }} {
     {{ track_script }}
   {% endfor -%}
   }
+  
+  {% if value.notify_master is defined %}
+	notify_master {{ value.notify_master }}
+  {% endif %}
+  {% if value.notify_fault is defined %}
+	notify_fault {{ value.notify_fault }}
+  {% endif %}
+  {% if value.notify_backup is defined %}
+	notify_backup {{ value.notify_backup }}
+  {% endif %}
+}
+{% endfor %}
+
+{% for key, value in keepalived_virtual_servers.iteritems() %}
+! Service: key
+virtual_server {{ value.address }} {{ value.port }} {
+	delay_loop {{ value.delay_loop }}
+	{% if value.lb_algo is defined %}
+	lb_algo {{ value.lb_algo }}
+	{% endif %}
+	{% if value.lb_kind is defined %}
+    lb_kind {{ value.lb_kind }}
+	{% endif %}
+	{% if value.persistence_timeout is defined %}
+    persistence_timeout {{ value.persistence_timeout }}
+	{% endif %}
+    protocol {{ value.protocol }}
+	
+	{% for rsname, realserver in value.real_servers.iteritems() %}
+	! Real server: {{ rsname }}
+	real_server {{ realserver.address }} {{ realserver.port }} {
+		{% for checktype, checkrules in realserver.checks.iteritems() %}
+		{{ checktype }} {
+			{% for checkrule in checkrules %}
+			{{ checkrule }}
+			{% endfor %}
+		}
+		{% endfor %}
+	}
+	{% endfor %}
+	
 }
 {% endfor %}

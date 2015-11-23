@@ -26,6 +26,15 @@
   notify: reload sysctl
   when: keepalived_ip_nonlocal_bind != false
   tags: [configuration, keepalived, keepalived-ip-nonlocal-bind]
+  
+- name: allow IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: "{{ keepalived_ip_forward }}"
+    state: present
+  notify: reload sysctl
+  when: keepalived_ip_nonlocal_bind != false
+  tags: [configuration, keepalived, keepalived-ip-forward]
 
 - name: start and enable service
   service:
